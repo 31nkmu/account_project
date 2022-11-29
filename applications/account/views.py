@@ -10,7 +10,6 @@ from applications.account.serializers import RegisterSerializer, LoginSerializer
 class RegisterApiView(APIView):
     @staticmethod
     def post(request):
-        print(request.data)
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -19,5 +18,5 @@ class RegisterApiView(APIView):
                         status=status.HTTP_201_CREATED)
 
 
-class LogitApiView(ObtainAuthToken):
+class LoginApiView(ObtainAuthToken):
     serializer_class = LoginSerializer
