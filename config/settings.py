@@ -41,6 +41,7 @@ INSTALLED_APPS = [
 
     # lib
     'rest_framework',
+    'rest_framework.authtoken',
 
     # app
     'applications.account',
