@@ -2,6 +2,8 @@ from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.hashers import make_password
 from rest_framework import serializers
 
+from applications.account.send_mail import send_confirmation_email
+
 User = get_user_model()
 
 
@@ -21,8 +23,8 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validate_data):
         user = User.objects.create_user(**validate_data)
-        user.is_active = True
-        # TODO: send message
+        code = user.activation_code
+        send_confirmation_email(user.email, code)
         return User
 
 
@@ -72,4 +74,3 @@ class ChangePasswordSerializer(serializers.Serializer):
         # user.password = make_password(password)
         user.set_password(password)
         user.save()
-
