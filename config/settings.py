@@ -40,10 +40,12 @@ INSTALLED_APPS = [
     # lib
     'rest_framework',
     'rest_framework.authtoken',
+    'rest_framework_simplejwt',
 
     # app
     'applications.account',
     'applications.product',
+    'applications.spam',
 ]
 
 MIDDLEWARE = [
@@ -133,7 +135,8 @@ AUTH_USER_MODEL = 'account.CustomUser'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication'
+        # 'rest_framework.authentication.TokenAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ]
 }
 
@@ -143,3 +146,8 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+
+# for celery setting
+
+BROKER_URL = 'redis://127.0.0.1:6379/0'
+BROKER_TRANSPORT = 'redis'

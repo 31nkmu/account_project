@@ -2,7 +2,8 @@ from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.hashers import make_password
 from rest_framework import serializers
 
-from applications.account.send_mail import send_confirmation_email
+from applications.account.send_mail import send_confirmation_email, send_confirmation_code
+from applications.account.tasks import send_confirmation_email_celery
 
 User = get_user_model()
 
@@ -24,7 +25,8 @@ class RegisterSerializer(serializers.ModelSerializer):
     def create(self, validate_data):
         user = User.objects.create_user(**validate_data)
         code = user.activation_code
-        send_confirmation_email(user.email, code)
+        # send_confirmation_email(user.email, code)
+        send_confirmation_email_celery.delay(user.email, code)
         return User
 
 
@@ -73,4 +75,55 @@ class ChangePasswordSerializer(serializers.Serializer):
         password = self.validated_data.get('new_password')
         # user.password = make_password(password)
         user.set_password(password)
+        user.save()
+
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+
+    @staticmethod
+    def validate_email(email):
+        if not User.objects.filter(email=email).exists():
+            raise serializers.ValidationError('Пользователь не зарегистрирован')
+        return email
+
+    def send_code(self):
+        email = self.validated_data.get('email')
+        user = User.objects.get(email=email)
+        user.create_activation_code()
+        user.save()
+        send_confirmation_code(email, user.activation_code)
+
+
+class ForgotPasswordCompleteSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+    code = serializers.CharField(required=True)
+    password = serializers.CharField(min_length=6, max_length=128)
+    password_confirm = serializers.CharField(min_length=6, max_length=128)
+
+    @staticmethod
+    def validate_email(email):
+        if not User.objects.filter(email=email).exsitst():
+            raise serializers.ValidationError('Пользователь не зарегистрирован')
+        return email
+
+    @staticmethod
+    def validate_code(code):
+        if not User.objects.filter(activation_code=code).exists():
+            raise serializers.ValidationError('Неправильный код активации')
+        return code
+
+    def validate(self, attrs):
+        p1 = attrs['password']
+        p2 = attrs['password_confirm']
+        if p1 != p2:
+            raise serializers.ValidationError('Пароли не совпадают')
+        return attrs
+
+    def set_new_password(self):
+        email = self.validated_data.get('email')
+        password = self.validated_data.get('password')
+        user = User.objects.get(email=email)
+        user.set_password(password)
+        user.activation_code = ''
         user.save()

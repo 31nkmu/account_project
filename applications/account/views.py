@@ -9,7 +9,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from applications.account.send_mail import send_hello
-from applications.account.serializers import RegisterSerializer, LoginSerializer, ChangePasswordSerializer
+from applications.account.serializers import RegisterSerializer, LoginSerializer, ChangePasswordSerializer, \
+    ForgotPasswordSerializer, ForgotPasswordCompleteSerializer
 
 User = get_user_model()
 
@@ -64,3 +65,19 @@ class ActivationApiView(APIView):
             return Response({'msg': 'успешно'}, status=status.HTTP_200_OK)
         except User.DoesNotExist:
             return Response({'msg': 'Неверный код активации'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ForgotPasswordApiView(APIView):
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.send_code()
+        return Response('Вам на почту отправлен код подтверждения')
+
+
+class ForgotPasswordCompleteApiView(APIView):
+    def post(self, request):
+        serializer = ForgotPasswordCompleteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.set_new_password()
+        return Response('Ваш пароль успешно обновлен')
